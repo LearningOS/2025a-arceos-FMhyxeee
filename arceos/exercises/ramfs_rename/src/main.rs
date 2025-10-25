@@ -38,6 +38,8 @@ fn print_file(fname: &str) -> io::Result<()> {
 }
 
 fn process() -> io::Result<()> {
+    // Create the /tmp directory first (ignore if it already exists)
+    let _ = fs::create_dir("/tmp");
     create_file("/tmp/f1", "hello")?;
     // Just rename, NOT move.
     // So this must happen in the same directory.

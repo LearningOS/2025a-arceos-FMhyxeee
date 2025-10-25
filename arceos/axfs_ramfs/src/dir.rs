@@ -165,6 +165,67 @@ impl VfsNodeOps for DirNode {
         }
     }
 
+    fn rename(&self, old_path: &str, new_path: &str) -> VfsResult {
+        log::debug!("rename at ramfs: {} -> {}", old_path, new_path);
+
+        // Parse old path
+        let (old_name, old_rest) = split_path(old_path);
+        let old_parent = if let Some(old_rest) = old_rest {
+            match old_name {
+                "" | "." => return self.rename(old_rest, new_path),
+                ".." => return self.parent().ok_or(VfsError::NotFound)?.rename(old_rest, new_path),
+                _ => {
+                    let subdir = self
+                        .children
+                        .read()
+                        .get(old_name)
+                        .ok_or(VfsError::NotFound)?
+                        .clone();
+                    return subdir.rename(old_rest, new_path);
+                }
+            }
+        } else {
+            self.clone()
+        };
+
+        // Parse new path
+        let (new_name, new_rest) = split_path(new_path);
+        let new_parent = if let Some(new_rest) = new_rest {
+            match new_name {
+                "" | "." => return self.rename(old_path, new_rest),
+                ".." => return self.parent().ok_or(VfsError::NotFound)?.rename(old_path, new_rest),
+                _ => {
+                    let subdir = self
+                        .children
+                        .read()
+                        .get(new_name)
+                        .ok_or(VfsError::NotFound)?
+                        .clone();
+                    return subdir.rename(old_path, new_rest);
+                }
+            }
+        } else {
+            self.clone()
+        };
+
+        // Perform the rename operation
+        if Arc::ptr_eq(&old_parent, &new_parent) {
+            // Same directory rename
+            let old_dir = old_parent.as_any().downcast_ref::<DirNode>().ok_or(VfsError::InvalidInput)?;
+            if old_dir.exist(new_name) {
+                return Err(VfsError::AlreadyExists);
+            }
+
+            let mut children = old_dir.children.write();
+            let node = children.remove(old_name).ok_or(VfsError::NotFound)?;
+            children.insert(new_name.to_string(), node);
+            Ok(())
+        } else {
+            // Cross-directory rename not supported for simplicity
+            Err(VfsError::Unsupported)
+        }
+    }
+
     axfs_vfs::impl_vfs_dir_default! {}
 }
 

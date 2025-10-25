@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Add musl toolchain to PATH
+export PATH=/opt/musl/riscv64-linux-musl-cross/bin:$PATH
+
 tmp_file=mmap_test_output.txt
 grep_content="Read back content: hello, arceos!"
 
