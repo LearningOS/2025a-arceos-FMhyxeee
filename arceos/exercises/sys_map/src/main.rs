@@ -21,7 +21,6 @@ use alloc::sync::Arc;
 use alloc::string::String;
 use alloc::collections::BTreeMap;
 use axmm::AddrSpace;
-use loader::load_user_app;
 
 const USER_STACK_SIZE: usize = 0x10000;
 const KERNEL_STACK_SIZE: usize = 0x40000; // 256 KiB
@@ -40,7 +39,6 @@ fn main() {
     let mut test_file = File::create("/tmp/test_app").unwrap();
     // Write some simple test data (this would normally be an ELF binary)
     test_file.write_all(b"hello, arceos!").unwrap();
-    test_file.sync_all().unwrap();
     drop(test_file);
 
     // For now, let's just read the file back to verify ramfs works
